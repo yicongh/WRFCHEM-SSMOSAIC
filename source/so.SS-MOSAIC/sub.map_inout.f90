@@ -1,0 +1,407 @@
+!     =======================================================================
+!              THIS SUBROUINTE MAPS BETWEEN SS-MOSAIC AND WRF-CHEM
+!     =======================================================================
+
+      MODULE mod_MAP_INOUT
+      
+!     MODULE INTERFACE:
+!     =======================================================================      
+!     POINTERS FOR CHEM IN WRF:
+      USE mod_SSMOSAIC_PARAMS, ONLY: MW_SS, & 
+      p_TERP_CN3_g, p_TERP_CN2_g, p_TERP_CN1_g, p_TERP_C00_g, p_TERP_C01_g, &
+      p_TERP_C02_g, p_TERP_C03_g, p_TERP_C04_g, p_TERP_C05_g, p_TERP_C06_g, &
+      p_TERP_C07_g, p_TERP_C08_g, p_TERP_C09_g, &
+      p_TERP_CN3_a01, p_TERP_CN3_a02, p_TERP_CN3_a03, p_TERP_CN3_a04, &
+      p_TERP_CN2_a01, p_TERP_CN2_a02, p_TERP_CN2_a03, p_TERP_CN2_a04, &
+      p_TERP_CN1_a01, p_TERP_CN1_a02, p_TERP_CN1_a03, p_TERP_CN1_a04, &
+      p_TERP_C00_a01, p_TERP_C00_a02, p_TERP_C00_a03, p_TERP_C00_a04, &
+      p_TERP_C01_a01, p_TERP_C01_a02, p_TERP_C01_a03, p_TERP_C01_a04, &
+      p_TERP_C02_a01, p_TERP_C02_a02, p_TERP_C02_a03, p_TERP_C02_a04, &
+      p_TERP_C03_a01, p_TERP_C03_a02, p_TERP_C03_a03, p_TERP_C03_a04, &
+      p_TERP_C04_a01, p_TERP_C04_a02, p_TERP_C04_a03, p_TERP_C04_a04, &
+      p_TERP_C05_a01, p_TERP_C05_a02, p_TERP_C05_a03, p_TERP_C05_a04, &
+      p_TERP_C06_a01, p_TERP_C06_a02, p_TERP_C06_a03, p_TERP_C06_a04, &
+      p_TERP_C07_a01, p_TERP_C07_a02, p_TERP_C07_a03, p_TERP_C07_a04, &
+      p_TERP_C08_a01, p_TERP_C08_a02, p_TERP_C08_a03, p_TERP_C08_a04, &
+      p_TERP_C09_a01, p_TERP_C09_a02, p_TERP_C09_a03, p_TERP_C09_a04, &      
+      p_TERP_CN3_d01, p_TERP_CN3_d02, p_TERP_CN3_d03, p_TERP_CN3_d04, &
+      p_TERP_CN2_d01, p_TERP_CN2_d02, p_TERP_CN2_d03, p_TERP_CN2_d04, &
+      p_TERP_CN1_d01, p_TERP_CN1_d02, p_TERP_CN1_d03, p_TERP_CN1_d04, &
+      p_TERP_C00_d01, p_TERP_C00_d02, p_TERP_C00_d03, p_TERP_C00_d04, &
+      p_TERP_C01_d01, p_TERP_C01_d02, p_TERP_C01_d03, p_TERP_C01_d04, &
+      p_TERP_C02_d01, p_TERP_C02_d02, p_TERP_C02_d03, p_TERP_C02_d04, &
+      p_TERP_C03_d01, p_TERP_C03_d02, p_TERP_C03_d03, p_TERP_C03_d04, &
+      p_TERP_C04_d01, p_TERP_C04_d02, p_TERP_C04_d03, p_TERP_C04_d04, &
+      p_TERP_C05_d01, p_TERP_C05_d02, p_TERP_C05_d03, p_TERP_C05_d04, &
+      p_TERP_C06_d01, p_TERP_C06_d02, p_TERP_C06_d03, p_TERP_C06_d04, &
+      p_TERP_C07_d01, p_TERP_C07_d02, p_TERP_C07_d03, p_TERP_C07_d04, &
+      p_TERP_C08_d01, p_TERP_C08_d02, p_TERP_C08_d03, p_TERP_C08_d04, &
+      p_TERP_C09_d01, p_TERP_C09_d02, p_TERP_C09_d03, p_TERP_C09_d04
+      
+      CONTAINS
+      
+!     =======================================================================
+!              THIS SUBROUINTE MAPS BETWEEN SS-MOSAIC AND WRF-CHEM
+!     =======================================================================
+
+      SUBROUTINE MAP_INOUT(iNOW,kNOW,jNOW,CTRL, &
+                           CHEM, iM1,iM2, jM1,jM2, kM1,kM2, nCHEM, &
+                           moGAS, moAERO, moOLIG, nCOMP, nBINS)
+      
+!     DECLARATIONS:
+!     =======================================================================
+      IMPLICIT NONE
+      
+!     CURRENT TILE COORDINATES:
+      INTEGER,INTENT(IN) :: iNOW, jNOW, kNOW
+
+!     MAP CONTROL (IN or OUT):
+      INTEGER,INTENT(IN) :: CTRL
+
+!     CHEM ARRAY DIMENSIONS:
+      INTEGER,INTENT(IN) :: iM1,iM2
+      INTEGER,INTENT(IN) :: jM1,jM2
+      INTEGER,INTENT(IN) :: kM1,kM2
+      INTEGER,INTENT(IN) :: nCHEM
+      
+!     WRF ARRAY FOR TRACER SPECIES 
+!     FOR GAS [ppm] AND FOR AEROSOL SPECIES [ug per kg-air]:
+      REAL,INTENT(INOUT), &
+      DIMENSION(iM1:iM2, kM1:kM2, jM1:jM2, 1:nCHEM) :: CHEM
+      
+!     NUMBER OF SPECIES 
+!     AND AEROSOL BINS:
+      INTEGER,INTENT(IN) :: nCOMP
+      INTEGER,INTENT(IN) :: nBINS
+
+!     SS-MOSAIC GAS,
+!     AEROSOL, AND OLIGOMER ARRAYS:
+      REAL,INTENT(INOUT) :: moGAS(nCOMP)
+      REAL,INTENT(INOUT) :: moAERO(nCOMP,nBINS)
+      REAL,INTENT(INOUT) :: moOLIG(nCOMP,nBINS)
+
+!     CONVERSION FACTORS:
+      REAL :: CONV1
+      REAL :: CONV2      
+      
+!     UNIT CONVERSION FACTORS:
+!     =======================================================================
+      CONV1 = 1e-6*(101325./8.314/298.*1e-6)*1e6*MW_SS*1e6 !cAIRCLM
+      CONV2 = 1./(1000./28.966)*(101325./8.314/298.*1e-6)*1e6 !cAIRCLM
+      
+!     MAP IN OR OUT:
+!     =======================================================================
+      IF (CTRL.EQ.0) GOTO 100
+      IF (CTRL.EQ.1) GOTO 200
+      
+      STOP "ERROR in SS-MOSAIC MAP INOUT"
+
+!     MAPPING IN:
+!     =======================================================================
+100   CONTINUE
+      
+!     FOR GAS:
+      moGAS(1)  = CHEM(iNOW,kNOW,jNOW,p_TERP_CN3_g)*CONV1
+      moGAS(2)  = CHEM(iNOW,kNOW,jNOW,p_TERP_CN2_g)*CONV1
+      moGAS(3)  = CHEM(iNOW,kNOW,jNOW,p_TERP_CN1_g)*CONV1
+      moGAS(4)  = CHEM(iNOW,kNOW,jNOW,p_TERP_C00_g)*CONV1
+      moGAS(5)  = CHEM(iNOW,kNOW,jNOW,p_TERP_C01_g)*CONV1
+      moGAS(6)  = CHEM(iNOW,kNOW,jNOW,p_TERP_C02_g)*CONV1
+      moGAS(7)  = CHEM(iNOW,kNOW,jNOW,p_TERP_C03_g)*CONV1
+      moGAS(8)  = CHEM(iNOW,kNOW,jNOW,p_TERP_C04_g)*CONV1
+      moGAS(9)  = CHEM(iNOW,kNOW,jNOW,p_TERP_C05_g)*CONV1
+      moGAS(10) = CHEM(iNOW,kNOW,jNOW,p_TERP_C06_g)*CONV1
+      moGAS(11) = CHEM(iNOW,kNOW,jNOW,p_TERP_C07_g)*CONV1
+      moGAS(12) = CHEM(iNOW,kNOW,jNOW,p_TERP_C08_g)*CONV1
+      moGAS(13) = CHEM(iNOW,kNOW,jNOW,p_TERP_C09_g)*CONV1
+
+!     FOR AERO:
+      moAERO(1,1) = CHEM(iNOW,kNOW,jNOW,p_TERP_CN3_a01)*CONV2
+      moAERO(1,2) = CHEM(iNOW,kNOW,jNOW,p_TERP_CN3_a02)*CONV2
+      moAERO(1,3) = CHEM(iNOW,kNOW,jNOW,p_TERP_CN3_a03)*CONV2
+      moAERO(1,4) = CHEM(iNOW,kNOW,jNOW,p_TERP_CN3_a04)*CONV2
+
+      moAERO(2,1) = CHEM(iNOW,kNOW,jNOW,p_TERP_CN2_a01)*CONV2
+      moAERO(2,2) = CHEM(iNOW,kNOW,jNOW,p_TERP_CN2_a02)*CONV2
+      moAERO(2,3) = CHEM(iNOW,kNOW,jNOW,p_TERP_CN2_a03)*CONV2
+      moAERO(2,4) = CHEM(iNOW,kNOW,jNOW,p_TERP_CN2_a04)*CONV2
+
+      moAERO(3,1) = CHEM(iNOW,kNOW,jNOW,p_TERP_CN1_a01)*CONV2
+      moAERO(3,2) = CHEM(iNOW,kNOW,jNOW,p_TERP_CN1_a02)*CONV2
+      moAERO(3,3) = CHEM(iNOW,kNOW,jNOW,p_TERP_CN1_a03)*CONV2
+      moAERO(3,4) = CHEM(iNOW,kNOW,jNOW,p_TERP_CN1_a04)*CONV2
+
+      moAERO(4,1) = CHEM(iNOW,kNOW,jNOW,p_TERP_C00_a01)*CONV2
+      moAERO(4,2) = CHEM(iNOW,kNOW,jNOW,p_TERP_C00_a02)*CONV2
+      moAERO(4,3) = CHEM(iNOW,kNOW,jNOW,p_TERP_C00_a03)*CONV2
+      moAERO(4,4) = CHEM(iNOW,kNOW,jNOW,p_TERP_C00_a04)*CONV2
+
+      moAERO(5,1) = CHEM(iNOW,kNOW,jNOW,p_TERP_C01_a01)*CONV2
+      moAERO(5,2) = CHEM(iNOW,kNOW,jNOW,p_TERP_C01_a02)*CONV2
+      moAERO(5,3) = CHEM(iNOW,kNOW,jNOW,p_TERP_C01_a03)*CONV2
+      moAERO(5,4) = CHEM(iNOW,kNOW,jNOW,p_TERP_C01_a04)*CONV2
+
+      moAERO(6,1) = CHEM(iNOW,kNOW,jNOW,p_TERP_C02_a01)*CONV2
+      moAERO(6,2) = CHEM(iNOW,kNOW,jNOW,p_TERP_C02_a02)*CONV2
+      moAERO(6,3) = CHEM(iNOW,kNOW,jNOW,p_TERP_C02_a03)*CONV2
+      moAERO(6,4) = CHEM(iNOW,kNOW,jNOW,p_TERP_C02_a04)*CONV2
+
+      moAERO(7,1) = CHEM(iNOW,kNOW,jNOW,p_TERP_C03_a01)*CONV2
+      moAERO(7,2) = CHEM(iNOW,kNOW,jNOW,p_TERP_C03_a02)*CONV2
+      moAERO(7,3) = CHEM(iNOW,kNOW,jNOW,p_TERP_C03_a03)*CONV2
+      moAERO(7,4) = CHEM(iNOW,kNOW,jNOW,p_TERP_C03_a04)*CONV2
+
+      moAERO(8,1) = CHEM(iNOW,kNOW,jNOW,p_TERP_C04_a01)*CONV2
+      moAERO(8,2) = CHEM(iNOW,kNOW,jNOW,p_TERP_C04_a02)*CONV2
+      moAERO(8,3) = CHEM(iNOW,kNOW,jNOW,p_TERP_C04_a03)*CONV2
+      moAERO(8,4) = CHEM(iNOW,kNOW,jNOW,p_TERP_C04_a04)*CONV2
+
+      moAERO(9,1) = CHEM(iNOW,kNOW,jNOW,p_TERP_C05_a01)*CONV2
+      moAERO(9,2) = CHEM(iNOW,kNOW,jNOW,p_TERP_C05_a02)*CONV2
+      moAERO(9,3) = CHEM(iNOW,kNOW,jNOW,p_TERP_C05_a03)*CONV2
+      moAERO(9,4) = CHEM(iNOW,kNOW,jNOW,p_TERP_C05_a04)*CONV2
+
+      moAERO(10,1) = CHEM(iNOW,kNOW,jNOW,p_TERP_C06_a01)*CONV2
+      moAERO(10,2) = CHEM(iNOW,kNOW,jNOW,p_TERP_C06_a02)*CONV2
+      moAERO(10,3) = CHEM(iNOW,kNOW,jNOW,p_TERP_C06_a03)*CONV2
+      moAERO(10,4) = CHEM(iNOW,kNOW,jNOW,p_TERP_C06_a04)*CONV2
+      
+      moAERO(11,1) = CHEM(iNOW,kNOW,jNOW,p_TERP_C07_a01)*CONV2
+      moAERO(11,2) = CHEM(iNOW,kNOW,jNOW,p_TERP_C07_a02)*CONV2
+      moAERO(11,3) = CHEM(iNOW,kNOW,jNOW,p_TERP_C07_a03)*CONV2
+      moAERO(11,4) = CHEM(iNOW,kNOW,jNOW,p_TERP_C07_a04)*CONV2
+
+      moAERO(12,1) = CHEM(iNOW,kNOW,jNOW,p_TERP_C08_a01)*CONV2
+      moAERO(12,2) = CHEM(iNOW,kNOW,jNOW,p_TERP_C08_a02)*CONV2
+      moAERO(12,3) = CHEM(iNOW,kNOW,jNOW,p_TERP_C08_a03)*CONV2
+      moAERO(12,4) = CHEM(iNOW,kNOW,jNOW,p_TERP_C08_a04)*CONV2
+
+      moAERO(13,1) = CHEM(iNOW,kNOW,jNOW,p_TERP_C09_a01)*CONV2
+      moAERO(13,2) = CHEM(iNOW,kNOW,jNOW,p_TERP_C09_a02)*CONV2
+      moAERO(13,3) = CHEM(iNOW,kNOW,jNOW,p_TERP_C09_a03)*CONV2
+      moAERO(13,4) = CHEM(iNOW,kNOW,jNOW,p_TERP_C09_a04)*CONV2
+      
+!     FOR OLIG:
+      moOLIG(1,1) = CHEM(iNOW,kNOW,jNOW,p_TERP_CN3_d01)*CONV2
+      moOLIG(1,2) = CHEM(iNOW,kNOW,jNOW,p_TERP_CN3_d02)*CONV2
+      moOLIG(1,3) = CHEM(iNOW,kNOW,jNOW,p_TERP_CN3_d03)*CONV2
+      moOLIG(1,4) = CHEM(iNOW,kNOW,jNOW,p_TERP_CN3_d04)*CONV2
+
+      moOLIG(2,1) = CHEM(iNOW,kNOW,jNOW,p_TERP_CN2_d01)*CONV2
+      moOLIG(2,2) = CHEM(iNOW,kNOW,jNOW,p_TERP_CN2_d02)*CONV2
+      moOLIG(2,3) = CHEM(iNOW,kNOW,jNOW,p_TERP_CN2_d03)*CONV2
+      moOLIG(2,4) = CHEM(iNOW,kNOW,jNOW,p_TERP_CN2_d04)*CONV2
+
+      moOLIG(3,1) = CHEM(iNOW,kNOW,jNOW,p_TERP_CN1_d01)*CONV2
+      moOLIG(3,2) = CHEM(iNOW,kNOW,jNOW,p_TERP_CN1_d02)*CONV2
+      moOLIG(3,3) = CHEM(iNOW,kNOW,jNOW,p_TERP_CN1_d03)*CONV2
+      moOLIG(3,4) = CHEM(iNOW,kNOW,jNOW,p_TERP_CN1_d04)*CONV2
+
+      moOLIG(4,1) = CHEM(iNOW,kNOW,jNOW,p_TERP_C00_d01)*CONV2
+      moOLIG(4,2) = CHEM(iNOW,kNOW,jNOW,p_TERP_C00_d02)*CONV2
+      moOLIG(4,3) = CHEM(iNOW,kNOW,jNOW,p_TERP_C00_d03)*CONV2
+      moOLIG(4,4) = CHEM(iNOW,kNOW,jNOW,p_TERP_C00_d04)*CONV2
+
+      moOLIG(5,1) = CHEM(iNOW,kNOW,jNOW,p_TERP_C01_d01)*CONV2
+      moOLIG(5,2) = CHEM(iNOW,kNOW,jNOW,p_TERP_C01_d02)*CONV2
+      moOLIG(5,3) = CHEM(iNOW,kNOW,jNOW,p_TERP_C01_d03)*CONV2
+      moOLIG(5,4) = CHEM(iNOW,kNOW,jNOW,p_TERP_C01_d04)*CONV2
+
+      moOLIG(6,1) = CHEM(iNOW,kNOW,jNOW,p_TERP_C02_d01)*CONV2
+      moOLIG(6,2) = CHEM(iNOW,kNOW,jNOW,p_TERP_C02_d02)*CONV2
+      moOLIG(6,3) = CHEM(iNOW,kNOW,jNOW,p_TERP_C02_d03)*CONV2
+      moOLIG(6,4) = CHEM(iNOW,kNOW,jNOW,p_TERP_C02_d04)*CONV2
+
+      moOLIG(7,1) = CHEM(iNOW,kNOW,jNOW,p_TERP_C03_d01)*CONV2
+      moOLIG(7,2) = CHEM(iNOW,kNOW,jNOW,p_TERP_C03_d02)*CONV2
+      moOLIG(7,3) = CHEM(iNOW,kNOW,jNOW,p_TERP_C03_d03)*CONV2
+      moOLIG(7,4) = CHEM(iNOW,kNOW,jNOW,p_TERP_C03_d04)*CONV2
+
+      moOLIG(8,1) = CHEM(iNOW,kNOW,jNOW,p_TERP_C04_d01)*CONV2
+      moOLIG(8,2) = CHEM(iNOW,kNOW,jNOW,p_TERP_C04_d02)*CONV2
+      moOLIG(8,3) = CHEM(iNOW,kNOW,jNOW,p_TERP_C04_d03)*CONV2
+      moOLIG(8,4) = CHEM(iNOW,kNOW,jNOW,p_TERP_C04_d04)*CONV2
+
+      moOLIG(9,1) = CHEM(iNOW,kNOW,jNOW,p_TERP_C05_d01)*CONV2
+      moOLIG(9,2) = CHEM(iNOW,kNOW,jNOW,p_TERP_C05_d02)*CONV2
+      moOLIG(9,3) = CHEM(iNOW,kNOW,jNOW,p_TERP_C05_d03)*CONV2
+      moOLIG(9,4) = CHEM(iNOW,kNOW,jNOW,p_TERP_C05_d04)*CONV2
+
+      moOLIG(10,1) = CHEM(iNOW,kNOW,jNOW,p_TERP_C06_d01)*CONV2
+      moOLIG(10,2) = CHEM(iNOW,kNOW,jNOW,p_TERP_C06_d02)*CONV2
+      moOLIG(10,3) = CHEM(iNOW,kNOW,jNOW,p_TERP_C06_d03)*CONV2
+      moOLIG(10,4) = CHEM(iNOW,kNOW,jNOW,p_TERP_C06_d04)*CONV2
+      
+      moOLIG(11,1) = CHEM(iNOW,kNOW,jNOW,p_TERP_C07_d01)*CONV2
+      moOLIG(11,2) = CHEM(iNOW,kNOW,jNOW,p_TERP_C07_d02)*CONV2
+      moOLIG(11,3) = CHEM(iNOW,kNOW,jNOW,p_TERP_C07_d03)*CONV2
+      moOLIG(11,4) = CHEM(iNOW,kNOW,jNOW,p_TERP_C07_d04)*CONV2
+
+      moOLIG(12,1) = CHEM(iNOW,kNOW,jNOW,p_TERP_C08_d01)*CONV2
+      moOLIG(12,2) = CHEM(iNOW,kNOW,jNOW,p_TERP_C08_d02)*CONV2
+      moOLIG(12,3) = CHEM(iNOW,kNOW,jNOW,p_TERP_C08_d03)*CONV2
+      moOLIG(12,4) = CHEM(iNOW,kNOW,jNOW,p_TERP_C08_d04)*CONV2
+
+      moOLIG(13,1) = CHEM(iNOW,kNOW,jNOW,p_TERP_C09_d01)*CONV2
+      moOLIG(13,2) = CHEM(iNOW,kNOW,jNOW,p_TERP_C09_d02)*CONV2
+      moOLIG(13,3) = CHEM(iNOW,kNOW,jNOW,p_TERP_C09_d03)*CONV2
+      moOLIG(13,4) = CHEM(iNOW,kNOW,jNOW,p_TERP_C09_d04)*CONV2
+
+
+      RETURN
+
+!     MAPPING OUT:
+!     =======================================================================
+200   CONTINUE
+
+!     FOR GAS:
+      CHEM(iNOW,kNOW,jNOW,p_TERP_CN3_g) = moGAS(1)/CONV1
+      CHEM(iNOW,kNOW,jNOW,p_TERP_CN2_g) = moGAS(2)/CONV1
+      CHEM(iNOW,kNOW,jNOW,p_TERP_CN1_g) = moGAS(3)/CONV1
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C00_g) = moGAS(4)/CONV1
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C01_g) = moGAS(5)/CONV1
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C02_g) = moGAS(6)/CONV1
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C03_g) = moGAS(7)/CONV1
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C04_g) = moGAS(8)/CONV1
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C05_g) = moGAS(9)/CONV1
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C06_g) = moGAS(10)/CONV1
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C07_g) = moGAS(11)/CONV1
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C08_g) = moGAS(12)/CONV1
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C09_g) = moGAS(13)/CONV1
+      
+!     FOR AERO:
+      CHEM(iNOW,kNOW,jNOW,p_TERP_CN3_a01) = moAERO(1,1)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_CN3_a02) = moAERO(1,2)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_CN3_a03) = moAERO(1,3)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_CN3_a04) = moAERO(1,4)/CONV2
+
+      CHEM(iNOW,kNOW,jNOW,p_TERP_CN2_a01) = moAERO(2,1)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_CN2_a02) = moAERO(2,2)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_CN2_a03) = moAERO(2,3)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_CN2_a04) = moAERO(2,4)/CONV2
+
+      CHEM(iNOW,kNOW,jNOW,p_TERP_CN1_a01) = moAERO(3,1)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_CN1_a02) = moAERO(3,2)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_CN1_a03) = moAERO(3,3)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_CN1_a04) = moAERO(3,4)/CONV2
+
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C00_a01) = moAERO(4,1)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C00_a02) = moAERO(4,2)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C00_a03) = moAERO(4,3)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C00_a04) = moAERO(4,4)/CONV2
+
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C01_a01) = moAERO(5,1)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C01_a02) = moAERO(5,2)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C01_a03) = moAERO(5,3)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C01_a04) = moAERO(5,4)/CONV2
+
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C02_a01) = moAERO(6,1)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C02_a02) = moAERO(6,2)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C02_a03) = moAERO(6,3)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C02_a04) = moAERO(6,4)/CONV2
+
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C03_a01) = moAERO(7,1)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C03_a02) = moAERO(7,2)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C03_a03) = moAERO(7,3)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C03_a04) = moAERO(7,4)/CONV2
+
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C04_a01) = moAERO(8,1)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C04_a02) = moAERO(8,2)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C04_a03) = moAERO(8,3)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C04_a04) = moAERO(8,4)/CONV2
+
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C05_a01) = moAERO(9,1)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C05_a02) = moAERO(9,2)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C05_a03) = moAERO(9,3)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C05_a04) = moAERO(9,4)/CONV2
+
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C06_a01) = moAERO(10,1)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C06_a02) = moAERO(10,2)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C06_a03) = moAERO(10,3)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C06_a04) = moAERO(10,4)/CONV2
+
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C07_a01) = moAERO(11,1)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C07_a02) = moAERO(11,2)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C07_a03) = moAERO(11,3)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C07_a04) = moAERO(11,4)/CONV2
+
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C08_a01) = moAERO(12,1)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C08_a02) = moAERO(12,2)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C08_a03) = moAERO(12,3)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C08_a04) = moAERO(12,4)/CONV2
+
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C09_a01) = moAERO(13,1)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C09_a02) = moAERO(13,2)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C09_a03) = moAERO(13,3)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C09_a04) = moAERO(13,4)/CONV2
+      
+!     FOR OLIG:
+      CHEM(iNOW,kNOW,jNOW,p_TERP_CN3_d01) = moOLIG(1,1)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_CN3_d02) = moOLIG(1,2)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_CN3_d03) = moOLIG(1,3)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_CN3_d04) = moOLIG(1,4)/CONV2
+
+      CHEM(iNOW,kNOW,jNOW,p_TERP_CN2_d01) = moOLIG(2,1)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_CN2_d02) = moOLIG(2,2)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_CN2_d03) = moOLIG(2,3)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_CN2_d04) = moOLIG(2,4)/CONV2
+
+      CHEM(iNOW,kNOW,jNOW,p_TERP_CN1_d01) = moOLIG(3,1)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_CN1_d02) = moOLIG(3,2)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_CN1_d03) = moOLIG(3,3)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_CN1_d04) = moOLIG(3,4)/CONV2
+
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C00_d01) = moOLIG(4,1)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C00_d02) = moOLIG(4,2)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C00_d03) = moOLIG(4,3)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C00_d04) = moOLIG(4,4)/CONV2
+
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C01_d01) = moOLIG(5,1)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C01_d02) = moOLIG(5,2)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C01_d03) = moOLIG(5,3)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C01_d04) = moOLIG(5,4)/CONV2
+
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C02_d01) = moOLIG(6,1)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C02_d02) = moOLIG(6,2)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C02_d03) = moOLIG(6,3)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C02_d04) = moOLIG(6,4)/CONV2
+
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C03_d01) = moOLIG(7,1)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C03_d02) = moOLIG(7,2)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C03_d03) = moOLIG(7,3)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C03_d04) = moOLIG(7,4)/CONV2
+
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C04_d01) = moOLIG(8,1)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C04_d02) = moOLIG(8,2)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C04_d03) = moOLIG(8,3)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C04_d04) = moOLIG(8,4)/CONV2
+
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C05_d01) = moOLIG(9,1)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C05_d02) = moOLIG(9,2)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C05_d03) = moOLIG(9,3)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C05_d04) = moOLIG(9,4)/CONV2
+
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C06_d01) = moOLIG(10,1)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C06_d02) = moOLIG(10,2)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C06_d03) = moOLIG(10,3)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C06_d04) = moOLIG(10,4)/CONV2
+
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C07_d01) = moOLIG(11,1)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C07_d02) = moOLIG(11,2)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C07_d03) = moOLIG(11,3)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C07_d04) = moOLIG(11,4)/CONV2
+
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C08_d01) = moOLIG(12,1)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C08_d02) = moOLIG(12,2)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C08_d03) = moOLIG(12,3)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C08_d04) = moOLIG(12,4)/CONV2
+
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C09_d01) = moOLIG(13,1)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C09_d02) = moOLIG(13,2)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C09_d03) = moOLIG(13,3)/CONV2
+      CHEM(iNOW,kNOW,jNOW,p_TERP_C09_d04) = moOLIG(13,4)/CONV2
+
+      RETURN
+      END SUBROUTINE
+      
+      END MODULE mod_MAP_INOUT
